@@ -28,3 +28,7 @@
 
 - Task summary: This was the middle stretch where the project started feeling real. I kept going and tried to sketch a lightweight architecture or component breakdown, then cleaned up whatever looked confusing or weak from the earlier days. Once the base made some sense, I could finally move a bit faster and stop second guessing every tiny decision. There were a few moving parts here, so I kept simplifying the plan in my head before touching anything else.
 - Deliverable: Ended the day with system sketch in hand, plus a few side notes on what still needed fixing later. There were still a couple of loose parts, but nothing serious enough to block the next step.
+## 2025-06-16 - Day 7: HTML scaffold
+
+- Task summary: This was the middle stretch where the project started feeling real. I kept going and tried to build the base page structure or component skeleton, then cleaned up whatever looked confusing or weak from the earlier days. The middle part always takes longer than it should, mostly becuase one fix usually reveals two more things to clean up. The tricky bit was making the system sound realistic without pretending every edge case was solved.
+- Deliverable: Ended the day with initial UI structure in hand, plus a few side notes on what still needed fixing later. It was not super polished, just stable enough that I felt okay moving forward.
