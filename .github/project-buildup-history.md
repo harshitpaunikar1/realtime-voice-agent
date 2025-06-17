@@ -44,3 +44,7 @@
 
 - Task summary: Ended up revisiting this in the evening — fixed a type coercion issue that was causing silent NaN propagation downstream.
 - Deliverable: Nothing dramatic — just keeping things tidy.
+## 2025-06-17 - Day 8: Styling
+
+- Task summary: Spent another hour on this: spent time just reading back through everything to make sure it still made sense end to end.
+- Deliverable: One of those satisfying small wins.
