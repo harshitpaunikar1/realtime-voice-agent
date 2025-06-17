@@ -40,3 +40,7 @@
 
 - Task summary: Late-night fix: added one more evaluation metric that felt missing from the earlier comparison.
 - Deliverable: Good enough to not be embarrassing.
+## 2025-06-17 - Day 8: Styling
+
+- Task summary: Ended up revisiting this in the evening — fixed a type coercion issue that was causing silent NaN propagation downstream.
+- Deliverable: Nothing dramatic — just keeping things tidy.
