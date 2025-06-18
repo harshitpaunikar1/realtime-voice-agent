@@ -36,3 +36,7 @@
 
 - Task summary: This was the middle stretch where the project started feeling real. I kept going and tried to apply layout, spacing, color, and typography until the project reads clearly, then cleaned up whatever looked confusing or weak from the earlier days. By now I had enough structure to keep going without staring at the screen too long, which honestly helped a lot. I spent part of the day just reducing confusion between components, names, and responsibilities.
 - Deliverable: Ended the day with usable UI in hand, plus a few side notes on what still needed fixing later. I also left myself a few rough reminders for the next day so I would not have to rediscover the same context again.
+## 2025-06-18 - Day 9: Interactions
+
+- Task summary: Closer to the end, I was mostly tightening things up instead of inventing new scope. The job for the day was to add the minimum JavaScript interactions needed to make the flow understandable so the final result looked a bit more complete. Once the base made some sense, I could finally move a bit faster and stop second guessing every tiny decision. There were a few moving parts here, so I kept simplifying the plan in my head before touching anything else.
+- Deliverable: Ended the day with working interactions in hand, plus a few side notes on what still needed fixing later. There were still a couple of loose parts, but nothing serious enough to block the next step.
