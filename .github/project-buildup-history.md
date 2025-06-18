@@ -48,3 +48,7 @@
 
 - Task summary: Spent another hour on this: spent time just reading back through everything to make sure it still made sense end to end.
 - Deliverable: One of those satisfying small wins.
+## 2025-06-18 - Day 9: Interactions
+
+- Task summary: Closer to the end, I was mostly tightening things up instead of inventing new scope. The job for the day was to add the minimum JavaScript interactions needed to make the flow understandable so the final result looked a bit more complete. Once the base made some sense, I could finally move a bit faster and stop second guessing every tiny decision. There were a few moving parts here, so I kept simplifying the plan in my head before touching anything else.
+- Deliverable: Ended the day with working interactions in hand, plus a few side notes on what still needed fixing later. There were still a couple of loose parts, but nothing serious enough to block the next step.
