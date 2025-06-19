@@ -56,3 +56,7 @@
 
 - Task summary: Closer to the end, I was mostly tightening things up instead of inventing new scope. The job for the day was to create or organize diagrams, screenshots, and supporting visuals so the final result looked a bit more complete. Most of the heavy lifting was already done, so this part was more about making the rough edges less obvious. The tricky bit was making the system sound realistic without pretending every edge case was solved.
 - Deliverable: Ended the day with support visuals in hand, plus a few side notes on what still needed fixing later. It was not super polished, just stable enough that I felt okay moving forward.
+## 2025-06-19 - Day 10: Artifacts
+
+- Task summary: Came back after lunch and realized added one more evaluation metric that felt missing from the earlier comparison.
+- Deliverable: One of those satisfying small wins.
