@@ -60,3 +60,7 @@
 
 - Task summary: Came back after lunch and realized added one more evaluation metric that felt missing from the earlier comparison.
 - Deliverable: One of those satisfying small wins.
+## 2025-06-19 - Day 10: Artifacts
+
+- Task summary: Ended up revisiting this in the evening — wrapped a repeated block in a helper function since it showed up three times.
+- Deliverable: One of those satisfying small wins.
