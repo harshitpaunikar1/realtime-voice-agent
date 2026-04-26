@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Voice Agent | Latency-First Systems Analysis</title>
+  <meta name="description" content="Latency-first analysis of a room-based voice AI pipeline using LiveKit, faster-whisper, Gemini Flash, and Piper TTS.">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&amp;display=swap">
+  <style>
+    :root {
+      --bg: #000000;
+      --panel: #080808;
+      --panel-2: #101010;
+      --line: #2f2f2f;
+      --line-2: #4a4a4a;
+      --text: #f2f2f2;
+      --muted: #b8b8b8;
+      --soft: #8c8c8c;
+      --ink-1: #ffffff;
+      --ink-2: #dfdfdf;
+      --ink-3: #bdbdbd;
+      --ink-4: #8f8f8f;
+      --ink-5: #5a5a5a;
+      --ink-6: #252525;
+      --max: 1440px;
+      --lane: 43rem;
+      --gutter: clamp(1rem, 2vw, 2rem);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 18%),
+        repeating-linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.028) 0,
+          rgba(255, 255, 255, 0.028) 1px,
+          transparent 1px,
+          transparent 28px
+        ),
+        #000;
+      color: var(--text);
+      font-family: "IBM Plex Mono", monospace;
+      line-height: 1.65;
+    }
+
+    a {
+      color: var(--ink-2);
+    }
+
+    a:hover {
+      color: var(--ink-1);
+    }
+
+    .page {
+      width: min(100%, var(--max));
+      margin: 0 auto;
+      padding: 0 var(--gutter) 4rem;
+    }
+
+    .mast {
+      min-height: 100svh;
+      display: grid;
+      align-content: center;
+      gap: 1.5rem;
+      padding: 4rem 0 3rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mast-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.5rem, 7vw, 6.2rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+      text-transform: uppercase;
+    }
+
+    .dek {
+      max-width: 62rem;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 2vw, 1.25rem);
+    }
+
+    .mast-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+    }
+
+    .mast-card {
+      background: var(--panel);
+      padding: 1rem;
+      min-height: 7.5rem;
+    }
+
+    .mast-card .label {
+      color: var(--soft);
+      display: block;
+      font-size: 0.76rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.7rem;
+    }
+
+    .mast-card strong {
+      display: block;
+      font-size: 1.55rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .mast-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .rail {
+      display: grid;
+      grid-template-columns: 15rem 1fr;
+      gap: 2rem;
+      padding: 1.5rem 0 2.4rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .rail h2 {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--soft);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .rail-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem 1.2rem;
+    }
+
+    .rail-links a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .section {
+      padding: 4rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 16rem 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      align-items: start;
+    }
+
+    .marker {
+      position: sticky;
+      top: 1rem;
+    }
+
+    .timestamp {
+      display: inline-block;
+      padding: 0.25rem 0.55rem;
+      border: 1px solid var(--line-2);
+      color: var(--ink-2);
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.4vw, 2rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .lane {
+      max-width: var(--lane);
+    }
+
+    .lane p,
+    .lane li {
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .lane p:first-child {
+      margin-top: 0;
+    }
+
+    .lane p:last-child {
+      margin-bottom: 0;
+    }
+
+    .lane ul {
+      margin: 1rem 0 0;
+      padding-left: 1.2rem;
+    }
+
+    .callout {
+      margin: 1.25rem 0;
+      padding: 1rem 1.1rem;
+      border-left: 2px solid var(--ink-3);
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+      color: var(--ink-2);
+    }
+
+    .figure-band {
+      margin: 2rem 0 0;
+      padding: 1.25rem;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 35%),
+        var(--panel);
+      border: 1px solid var(--line);
+    }
+
+    .figure-band svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    figcaption {
+      margin-top: 0.85rem;
+      color: var(--soft);
+      font-size: 0.87rem;
+    }
+
+    .budget-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      margin-top: 1rem;
+    }
+
+    .budget-cell {
+      padding: 0.9rem;
+      background: var(--panel-2);
+    }
+
+    .budget-cell strong {
+      display: block;
+      font-size: 1.1rem;
+      color: var(--ink-1);
+      margin-bottom: 0.35rem;
+    }
+
+    .budget-cell span {
+      color: var(--soft);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    pre {
+      margin: 1.25rem 0;
+      padding: 1rem;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      background: #050505;
+      color: var(--ink-2);
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+
+    code {
+      font-family: inherit;
+    }
+
+    .trace-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1px;
+      margin: 1.25rem 0;
+      background: var(--line);
+      border: 1px solid var(--line);
+    }
+
+    .trace-list div {
+      padding: 0.8rem 0.95rem;
+      background: var(--panel);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .trace-list strong {
+      color: var(--ink-1);
+      margin-right: 0.65rem;
+    }
+
+    .closing {
+      padding: 4rem 0 2rem;
+    }
+
+    .footer-note {
+      color: var(--soft);
+      font-size: 0.86rem;
+      border-top: 1px solid var(--line);
+      padding-top: 1rem;
+    }
+
+    @media (max-width: 980px) {
+      .mast-grid,
+      .budget-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .rail,
+      .section-head {
+        grid-template-columns: 1fr;
+      }
+
+      .marker {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .mast {
+        min-height: auto;
+        padding-top: 2rem;
+      }
+
+      .mast-grid,
+      .budget-grid,
+      .trace-list {
+        grid-template-columns: 1fr;
+      }
+
+      .figure-band {
+        padding: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="mast" id="top">
+      <div class="mast-top">
+        <span>One user / one agent / one room</span>
+        <span>LiveKit + faster-whisper + Gemini Flash + Piper</span>
+      </div>
+      <h1>Real-Time Voice Agent</h1>
+      <p class="dek">A room conversation is not judged on average intelligence. It is judged on the gap between a human mouth closing and a synthetic voice beginning. This document treats the voice agent as a measured pipeline, not a character, and follows latency from microphone ingress to interruption recovery.</p>
+      <div class="mast-grid" aria-label="System summary">
+        <div class="mast-card">
+          <span class="label">Primary budget</span>
+          <strong>866 ms</strong>
+          <p>Representative end-of-utterance to first audible phoneme on a clean turn.</p>
+        </div>
+        <div class="mast-card">
+          <span class="label">Critical path</span>
+          <strong>STT -> think -> TTS</strong>
+          <p>Small waits compound; no stage is harmless once it blocks the next one.</p>
+        </div>
+        <div class="mast-card">
+          <span class="label">Interruption target</span>
+          <strong>&lt; 150 ms</strong>
+          <p>Stop speaking quickly enough that the user does not feel forced to compete.</p>
+        </div>
+        <div class="mast-card">
+          <span class="label">Debug surface</span>
+          <strong>Room + pipeline events</strong>
+          <p>Every turn is traceable as a sequence of timed transitions rather than a vague failure.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="rail" aria-label="Document index">
+      <h2>Markers</h2>
+      <div class="rail-links">
+        <a href="#delay">Delay</a>
+        <a href="#budget">Latency Ribbon</a>
+        <a href="#ingress">Ingress</a>
+        <a href="#stt">STT</a>
+        <a href="#reasoning">Reasoning</a>
+        <a href="#tts">TTS + Playback</a>
+        <a href="#interrupt">Interruption</a>
+        <a href="#trace">Tracing + Optimization</a>
+      </div>
+    </section>
+
+    <section class="section" id="delay">
+      <div class="section-head">
+        <div class="marker">
+          <span class="timestamp">t+000 ms</span>
+          <h2>// Delay Is the Product</h2>
+        </div>
+        <div class="lane">
+          <p>In a text interface, a pause can hide behind a spinner. In a room, it sits in the air. The user has finished speaking, the speaker cone is silent, and the system has a fraction of a second to prove that it was listening rather than buffering. That is why the correct opening frame for this project is not model selection or prompt design. It is conversational delay.</p>
+          <p>The scope matters. One user, one AI agent, one room. This removes multi-party arbitration, cross-room fan-out, and diarization. It does not remove timing pressure. A single-user room is still a real-time system because turn-taking is embodied. A pause around 200 ms feels adjacent to natural overlap. A pause near 500 ms becomes noticeable. A pause pushing toward a second starts to feel like a network hop, not a local exchange. At that point users change strategy: they repeat themselves, they simplify questions, or they talk over the agent. Those behaviors are not user error. They are latency symptoms.</p>
+          <p>The architecture named in the README is straightforward on paper. LiveKit moves audio in and out of the room. faster-whisper converts speech to text. Gemini Flash produces the response. Piper turns the response back into speech. The important part is what the paper diagram hides: every box adds framing, buffering, queueing, and handoff cost before any model quality is even relevant. The system only feels fast when the sum of those small waits is kept inside a budget and when adjacent stages overlap instead of serialize.</p>
+          <p>This analysis therefore treats the pipeline as a set of measured segments. Audio ingress has a cost. Endpointing has a cost. Transcription has a cost. Response planning has a cost. Speech synthesis has a cost. Playback has a cost. Interruption recovery has its own budget and must remain independent from the clean-turn path. There is no magic real-time property conferred by the word streaming. There is only cumulative latency, stage by stage, under load and in failure.</p>
+          <div class="callout">Target operating shape: first audible response under 900 ms on a clean turn, full clause emission while the remainder of the answer is still being generated, and interruption stop time below 150 ms so the user can retake the floor without friction.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="budget">
+      <div class="section-head">
+        <div class="marker">
+          <span class="timestamp">t+866 ms</span>
+          <h2>// Latency Ribbon</h2>
+        </div>
+        <div class="lane">
+          <p>The ribbon below shows a representative clean turn from the moment the user stops speaking to the first audible phoneme from the agent. The numbers are not decorative. They define where the system can afford polish and where it cannot. The reason STT, reasoning, and TTS dominate the visible width is simple: they dominate the lived pause as well.</p>
+        </div>
+      </div>
+      <figure class="figure-band">
+        <svg viewBox="0 0 1260 250" role="img" aria-labelledby="latency-ribbon-title latency-ribbon-desc">
+          <title id="latency-ribbon-title">Latency ribbon for the voice pipeline</title>
+          <desc id="latency-ribbon-desc">A measured ribbon showing capture, transport, endpointing, transcription, reasoning, synthesis, packetization, and playback buffer as consecutive latency segments totaling 866 milliseconds.</desc>
+          <rect x="0" y="0" width="1260" height="250" fill="#050505"/>
+          <g stroke="#2f2f2f" stroke-width="1">
+            <line x1="70" y1="35" x2="70" y2="205"/>
+            <line x1="210" y1="35" x2="210" y2="205"/>
+            <line x1="350" y1="35" x2="350" y2="205"/>
+            <line x1="490" y1="35" x2="490" y2="205"/>
+            <line x1="630" y1="35" x2="630" y2="205"/>
+            <line x1="770" y1="35" x2="770" y2="205"/>
+            <line x1="910" y1="35" x2="910" y2="205"/>
+            <line x1="1050" y1="35" x2="1050" y2="205"/>
+            <line x1="1190" y1="35" x2="1190" y2="205"/>
+          </g>
+          <g fill="#8f8f8f" font-size="13" font-family="IBM Plex Mono, monospace">
+            <text x="62" y="28">0</text>
+            <text x="193" y="28">100</text>
+            <text x="333" y="28">200</text>
+            <text x="473" y="28">300</text>
+            <text x="613" y="28">400</text>
+            <text x="753" y="28">500</text>
+            <text x="893" y="28">600</text>
+            <text x="1033" y="28">700</text>
+            <text x="1173" y="28">800 ms</text>
+          </g>
+          <rect x="70" y="75" width="45" height="52" fill="#5a5a5a" stroke="#ffffff"/>
+          <rect x="115" y="75" width="61" height="52" fill="#707070" stroke="#ffffff"/>
+          <rect x="176" y="75" width="95" height="52" fill="#8f8f8f" stroke="#ffffff"/>
+          <rect x="271" y="75" width="249" height="52" fill="#bdbdbd" stroke="#000000"/>
+          <rect x="520" y="75" width="345" height="52" fill="#dfdfdf" stroke="#000000"/>
+          <rect x="865" y="75" width="224" height="52" fill="#9d9d9d" stroke="#ffffff"/>
+          <rect x="1089" y="75" width="54" height="52" fill="#6e6e6e" stroke="#ffffff"/>
+          <rect x="1143" y="75" width="117" height="52" fill="#3d3d3d" stroke="#ffffff"/>
+          <g font-size="14" font-family="IBM Plex Mono, monospace">
+            <text x="78" y="106" fill="#ffffff">32 ms</text>
+            <text x="121" y="106" fill="#ffffff">44 ms</text>
+            <text x="189" y="106" fill="#000000">68 ms</text>
+            <text x="344" y="106" fill="#000000">178 ms</text>
+            <text x="650" y="106" fill="#000000">247 ms</text>
+            <text x="946" y="106" fill="#000000">161 ms</text>
+            <text x="1097" y="106" fill="#ffffff">38 ms</text>
+            <text x="1172" y="106" fill="#ffffff">98 ms</text>
+          </g>
+          <g fill="#d8d8d8" font-size="14" font-family="IBM Plex Mono, monospace">
+            <text x="70" y="160">capture</text>
+            <text x="149" y="160">transport</text>
+            <text x="255" y="160">endpoint / commit</text>
+            <text x="451" y="160">faster-whisper</text>
+            <text x="720" y="160">Gemini Flash</text>
+            <text x="975" y="160">Piper</text>
+            <text x="1082" y="160">queue</text>
+            <text x="1167" y="160">playback</text>
+          </g>
+          <g fill="#8f8f8f" font-size="13" font-family="IBM Plex Mono, monospace">
+            <text x="74" y="194">32</text>
+            <text x="153" y="194">76</text>
+            <text x="247" y="194">144</text>
+            <text x="458" y="194">322</text>
+            <text x="703" y="194">569</text>
+            <text x="971" y="194">730</text>
+            <text x="1092" y="194">768</text>
+            <text x="1150" y="194">866 cumulative</text>
+          </g>
+        </svg>
+        <figcaption>Figure 1. Representative clean-turn latency ribbon. The usable conversational number is cumulative, not per-stage best case: 32 ms capture, 44 ms LiveKit transport, 68 ms endpoint commit, 178 ms faster-whisper transcription, 247 ms Gemini Flash response planning, 161 ms Piper synthesis, 38 ms packet queue, 98 ms playback buffer, for 866 ms to first audible output.</figcaption>
+        <div class="budget-grid" aria-label="Latency budget checkpoints">
+          <div class="budget-cell">
+            <span>Commit point</span>
+            <strong>144 ms</strong>
+          </div>
+          <div class="budget-cell">
+            <span>Text ready</span>
+            <strong>322 ms</strong>
+          </div>
+          <div class="budget-cell">
+            <span>Reply planned</span>
+            <strong>569 ms</strong>
+          </div>
+          <div class="budget-cell">
+            <span>Speech starts</span>
+            <strong>866 ms</strong>
+          </div>
+        </div>
+      </figure>
+    </section>
+
+    <section class="section" id="ingress">
+      <div class="section-head">
+        <div class="marker">
+          <span class="timestamp">t+144 ms</span>
+          <h2>// Audio Ingress And Room Edge</h2>
+        </div>
+        <div class="lane">
+          <p>The pipeline starts before transcription. It starts when acoustic energy becomes transportable frames. In a LiveKit room that means browser capture cadence, encoding, packet transit, server handling, and room event timing all happen before language enters the picture. When people say a voice agent feels sluggish, they often blame the model because that is the visible brand in the stack. The first avoidable waits usually live earlier.</p>
+          <p>The clean-turn budget above allocates 32 ms to local capture and 44 ms to transport. Those numbers are not theoretical minimums; they are a realistic compact window for a one-room path without cross-region detours. Capture cost appears small because the browser is already recording continuously. The actual penalty is frame accumulation and handoff. Transport cost also appears small because LiveKit is solving a hard media problem efficiently, but it is still subject to jitter, queueing, and room state changes. If that transport path stretches from 44 ms toward 90 ms, the rest of the system inherits the delay without any model having done additional work.</p>
+          <p>Endpointing is the first major policy decision. The project centers one user and one agent, so the system does not need to infer which speaker owns the turn. It only needs to decide when enough silence or enough confidence exists to commit the utterance downstream. That is where 68 ms is spent in the representative path: not on compute-heavy intelligence, but on deciding that the user has probably yielded the floor. Set the threshold too aggressively and you clip trailing words. Set it too conservatively and you manufacture dead air. Either mistake is immediately audible.</p>
+          <p>The correct implementation posture is to log room events and media-stage timestamps independently. A join event, track subscription event, voice activity transition, and utterance commit should not be conflated into one generic "received audio" marker. The point of the logging surface mentioned in the README is not archival completeness. It is causal clarity. When a turn slips from 866 ms to 1280 ms, the operator needs to know whether the extra 414 ms came from capture jitter, room transport, endpoint hesitation, STT backlog, or synthesis queueing.</p>
+<pre><code>from time import perf_counter_ns
+
+class TurnTrace:
+    def __init__(self, turn_id: str) -&gt; None:
+        self.turn_id = turn_id
+        self.t0 = perf_counter_ns()
+        self.events = []
+
+    def mark(self, name: str, **fields) -&gt; None:
+        now = perf_counter_ns()
+        self.events.append({
+            "turn_id": self.turn_id,
+            "event": name,
+            "ms": round((now - self.t0) / 1_000_000, 2),
+            **fields,
+        })
+
+trace = TurnTrace(turn_id)
+trace.mark("room.audio_frame")
+trace.mark("vad.speech_end")
+trace.mark("turn.commit")</code></pre>
+          <p>That snippet is intentionally plain. The system does not need ornate telemetry to become diagnosable. It needs one clock origin per turn and consistent stage names. Once the ingress side is measurable, the later model stages can be judged fairly instead of absorbing blame for transport uncertainty they did not create.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="stt">
+      <div class="section-head">
+        <div class="marker">
+          <span class="timestamp">t+322 ms</span>
+          <h2>// faster-whisper As A Commit Surface</h2>
+        </div>
+        <div class="lane">
+          <p>Speech-to-text is often drawn as a single rectangle labeled STT. That is too coarse for latency work. The stage actually contains chunk collection, decoding, partial hypothesis formation, and finalization logic. In this system faster-whisper is the first language-bearing stage, but it should not be treated as the first moment where timing discipline matters. It inherits all upstream uncertainty and then decides how much of that uncertainty it passes along.</p>
+          <p>The representative budget gives faster-whisper 178 ms after utterance commit to produce a usable transcription. That is a narrow budget, but it is sufficient when the system stays aligned with the product scope. One user means no diarization. One room means no cross-participant arbitration. A practical voice agent does not need maximal transcription ceremony. It needs a stable clause quickly enough to unblock response planning. That usually means smaller audio slices, fixed language when known, and a bias toward incremental emission rather than waiting for perfect sentence closure.</p>
+          <p>The main mistake at this stage is confusing transcript prettiness with transcript utility. A punctuation-clean final string is valuable for logs. It is not necessary for first-response timing. The backend should separate the "safe to plan against" condition from the "final archival text is ready" condition. If the system waits for transcript cleanup, number normalization, and post-formatting before the LLM sees anything, STT turns from an enabling stage into a queue. In real-time voice work, small formatting wins are not worth 150 ms of dead air.</p>
+          <p>There is also an asymmetry between clean turns and interruption recovery. On a clean turn, the STT stage can wait briefly for confidence. On an interrupted turn, it must reacquire faster because the user is usually correcting the agent or clarifying a failed answer. The system therefore benefits from preserving partial decoder state and from carrying the interruption marker into STT logs so false restarts are visible. Without that annotation, operators see longer transcribe times without knowing whether the model was slow or the turn was restarted mid-stream.</p>
+          <div class="callout">Operational rule: use partial transcripts to prepare, but only hand Gemini Flash a segment that has crossed an explicit commit condition. Fast and wrong is not conversational; it is merely early.</div>
+          <p>What this buys the pipeline is not raw STT speed in isolation. It buys a predictable handoff. Once a committed text segment exists around 322 ms cumulative, the next stage can begin with a bounded uncertainty envelope. That is the difference between a voice stack that appears to improvise and one that behaves like a designed system.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="reasoning">
+      <div class="section-head">
+        <div class="marker">
+          <span class="timestamp">t+569 ms</span>
+          <h2>// Gemini Flash Under A Latency Budget</h2>
+        </div>
+        <div class="lane">
+          <p>Once text is committed, the system enters the reasoning stage. Here the temptation is to discuss prompt craft in abstract terms. For a latency-first analysis, the more important question is what kind of answer structure Gemini Flash can return quickly enough to feed speech synthesis without audible hesitation. A voice agent does not need a finished essay before it speaks. It needs a first clause that is semantically safe, locally coherent, and unlikely to be invalidated by the remainder of generation.</p>
+          <p>The budget assigns 247 ms to this stage, carrying cumulative time from 322 ms to 569 ms. That number implies aggressive scope control. Prompts must be short. Retrieved context, if any, must be bounded. Output length must be capped or at least steered toward concise spoken language. The point is not to make the model terse for aesthetic reasons. The point is that every extra token can either delay first-clause stability or expand the TTS workload that follows. In a room interaction, verbosity has a direct acoustic cost.</p>
+          <p>There is another constraint unique to speech: the first text chunk must sound like the beginning of a sentence a human would say aloud. Many text-first systems can stream jagged fragments because the eye is tolerant. The ear is less forgiving. Gemini Flash therefore should be used here less as a maximal reasoner and more as a low-latency planner that emits clause-shaped units. If the first chunk is "Well, based on" and then stalls, the user hears uncertainty. If the first chunk is a compact answer core, Piper can begin producing sound while later reasoning continues.</p>
+          <p>That makes overlap the central optimization. The ideal path is not STT complete, then full reasoning complete, then full synthesis complete. The ideal path is STT commit, then first clause generation, then immediate handoff to TTS while the remainder of the response is still being produced. This is the only honest way to keep cumulative latency low without cutting answer quality to the floor. A system that insists on full serial completion will always pay the full width of every stage in the ribbon.</p>
+          <p>Latency budgets also clarify failure policy. If Gemini Flash has not produced a synthesis-safe clause within its allocation window, the system needs a deterministic fallback rather than a silent wait. That fallback might be a shorter prompt, a capped retry, or a degraded answer template. The anti-magic principle matters here: the user should encounter a bounded, simpler answer rather than an apparently arbitrary pause whose cause is invisible.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="tts">
+      <div class="section-head">
+        <div class="marker">
+          <span class="timestamp">t+866 ms</span>
+          <h2>// Piper, Queueing, And Audible Start</h2>
+        </div>
+        <div class="lane">
+          <p>Text-to-speech is where the system finally becomes accountable to the room again. Until this point, the pipeline has been accumulating invisible work. Piper turns that work into an audible commitment. If the first waveform is late, every prior stage becomes visible at once. If the first waveform is early but poorly buffered, the system sounds broken instead of slow. Either way the user experiences the sum, not the internal excuse.</p>
+          <p>The representative path gives Piper 161 ms to synthesize the first usable chunk, 38 ms to packetize and queue it, and 98 ms for playback buffering before the speaker emits the first phoneme at 866 ms cumulative. These numbers show why TTS should be treated as a streaming stage, not a file export. Waiting for the full response text and then asking Piper for a complete audio asset is structurally incompatible with conversational timing. The correct unit is the first clause. Everything after that should overlap: later text generation, later synthesis, and incremental playback.</p>
+          <p>Playback itself deserves explicit ownership. The room layer is not finished once bytes leave Piper. Audio still needs framing, enqueueing, and a buffer large enough to prevent stutter without reintroducing the pause the earlier stages worked to remove. In practice this means the system must decide how much audio to hold before starting playback. Too little and jitter or synthesis variance causes audible under-runs. Too much and the user waits through a silent reserve that provides no conversational value. The 98 ms playback slice in the ribbon is not spare time. It is a negotiated compromise between smoothness and responsiveness.</p>
+          <p>This stage is also where answer length becomes financially real. An overlong text reply is not just an LLM style issue. It increases synthesis CPU time, expands outbound buffering, and stretches the interval during which interruption must remain clean. Spoken systems should therefore bias toward compact first turns and progressive elaboration. A short answer that can extend on request is acoustically cheaper and easier to interrupt than a single dense monologue.</p>
+          <div class="trace-list" aria-label="Playback checkpoints">
+            <div><strong>730 ms</strong>Piper emits first PCM chunk.</div>
+            <div><strong>768 ms</strong>Outbound queue has enough audio to start safely.</div>
+            <div><strong>866 ms</strong>Room playback begins; the user hears the response.</div>
+            <div><strong>+420 ms</strong>Typical remaining clause audio streams behind the lead chunk.</div>
+          </div>
+          <p>The important systems point is that playback start is the product metric. A room participant cannot hear "LLM first token." They can only hear audio onset. That is why the pipeline should be optimized against the time to audible speech, not against isolated model timings that look impressive in a dashboard but do not map to the human exchange.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="interrupt">
+      <div class="section-head">
+        <div class="marker">
+          <span class="timestamp">barge-in path</span>
+          <h2>// Turn-Taking And Interruption Recovery</h2>
+        </div>
+        <div class="lane">
+          <p>A voice agent that cannot be interrupted is not participating in conversation. It is broadcasting. The room constraint sharpens this further because there is only one user to satisfy. If that user starts speaking while the agent is mid-sentence, the system does not need democratic fairness. It needs to yield quickly and cleanly. Interruption handling is therefore not an accessory feature added after the main pipeline works. It is part of the main pipeline.</p>
+          <p>The state machine below makes the expected transitions explicit. Listen leads to transcribe once speech is detected and a turn is committed. Transcribe leads to think when the text segment is stable enough for response planning. Think leads to speak when a synthesis-safe clause exists. While speaking, a new user voice event should not be treated as ambient noise by default. It should be tested as a potential barge-in. If confirmed, the agent enters interrupt, cancels synthesis and playback with bounded drain behavior, then moves to recover so the user can retake the floor without carrying stale audio forward.</p>
+        </div>
+      </div>
+      <figure class="figure-band">
+        <svg viewBox="0 0 1260 520" role="img" aria-labelledby="state-title state-desc">
+          <title id="state-title">Turn-taking state machine</title>
+          <desc id="state-desc">A state machine showing transitions among listen, transcribe, think, speak, interrupt, and recover with triggers for speech detection, transcript stability, reply readiness, barge-in, and resumed silence.</desc>
+          <rect x="0" y="0" width="1260" height="520" fill="#050505"/>
+          <g stroke="#2f2f2f" stroke-width="1">
+            <line x1="110" y1="150" x2="1150" y2="150"/>
+            <line x1="110" y1="320" x2="1150" y2="320"/>
+          </g>
+          <g font-family="IBM Plex Mono, monospace">
+            <rect x="110" y="95" width="180" height="110" rx="14" fill="#101010" stroke="#ffffff" stroke-width="2"/>
+            <rect x="340" y="95" width="180" height="110" rx="14" fill="#3d3d3d" stroke="#ffffff" stroke-width="2"/>
+            <rect x="570" y="95" width="180" height="110" rx="14" fill="#8f8f8f" stroke="#ffffff" stroke-width="2"/>
+            <rect x="800" y="95" width="180" height="110" rx="14" fill="#dfdfdf" stroke="#000000" stroke-width="2"/>
+            <rect x="615" y="295" width="180" height="110" rx="14" fill="#5a5a5a" stroke="#ffffff" stroke-width="2"/>
+            <rect x="845" y="295" width="180" height="110" rx="14" fill="#252525" stroke="#ffffff" stroke-width="2"/>
+
+            <text x="165" y="143" fill="#ffffff" font-size="24">LISTEN</text>
+            <text x="370" y="143" fill="#ffffff" font-size="24">TRANSCRIBE</text>
+            <text x="631" y="143" fill="#000000" font-size="24">THINK</text>
+            <text x="857" y="143" fill="#000000" font-size="24">SPEAK</text>
+            <text x="645" y="343" fill="#ffffff" font-size="24">INTERRUPT</text>
+            <text x="895" y="343" fill="#ffffff" font-size="24">RECOVER</text>
+
+            <text x="146" y="169" fill="#bdbdbd" font-size="14">room active</text>
+            <text x="368" y="169" fill="#d9d9d9" font-size="14">commit text</text>
+            <text x="594" y="169" fill="#050505" font-size="14">plan clause</text>
+            <text x="834" y="169" fill="#050505" font-size="14">emit audio</text>
+            <text x="637" y="369" fill="#d9d9d9" font-size="14">cancel + flush</text>
+            <text x="881" y="369" fill="#d9d9d9" font-size="14">resume capture</text>
+
+            <path d="M290 150 L340 150" fill="none" stroke="#ffffff" stroke-width="2"/>
+            <polygon points="340,150 327,143 327,157" fill="#ffffff"/>
+            <path d="M520 150 L570 150" fill="none" stroke="#ffffff" stroke-width="2"/>
+            <polygon points="570,150 557,143 557,157" fill="#ffffff"/>
+            <path d="M750 150 L800 150" fill="none" stroke="#ffffff" stroke-width="2"/>
+            <polygon points="800,150 787,143 787,157" fill="#ffffff"/>
+
+            <text x="296" y="132" fill="#b8b8b8" font-size="14">speech_end</text>
+            <text x="530" y="132" fill="#b8b8b8" font-size="14">text_stable</text>
+            <text x="760" y="132" fill="#b8b8b8" font-size="14">reply_ready</text>
+
+            <path d="M890 205 C890 255 820 255 795 295" fill="none" stroke="#ffffff" stroke-width="2"/>
+            <polygon points="795,295 791,280 805,286" fill="#ffffff"/>
+            <text x="854" y="262" fill="#b8b8b8" font-size="14">barge_in</text>
+
+            <path d="M795 350 L845 350" fill="none" stroke="#ffffff" stroke-width="2"/>
+            <polygon points="845,350 832,343 832,357" fill="#ffffff"/>
+            <text x="801" y="332" fill="#b8b8b8" font-size="14">audio_stopped</text>
+
+            <path d="M935 295 C955 245 1030 235 1030 180 C1030 125 1000 100 980 95" fill="none" stroke="#ffffff" stroke-width="2"/>
+            <polygon points="980,95 992,104 977,108" fill="#ffffff"/>
+            <text x="1037" y="188" fill="#b8b8b8" font-size="14">resume_think</text>
+
+            <path d="M935 405 C905 450 775 465 585 440 C345 408 205 332 200 205" fill="none" stroke="#8f8f8f" stroke-width="2"/>
+            <polygon points="200,205 210,216 196,219" fill="#8f8f8f"/>
+            <text x="468" y="466" fill="#8f8f8f" font-size="14">silence + new_turn -> LISTEN</text>
+          </g>
+        </svg>
+        <figcaption>Figure 2. Turn-taking state machine. The barge-in path is a first-class route: while speaking, user voice can force transition to interrupt, bounded audio stop, recovery, and either resumed thinking or a fresh listen state depending on what the new utterance invalidates.</figcaption>
+      </figure>
+      <div class="section-head" style="margin-top: 2rem;">
+        <div></div>
+        <div class="lane">
+          <p>The operational challenge is not merely canceling work. It is canceling work at the right boundaries. If playback drains too much queued audio, the user still hears the agent talking after they have started. If playback stops too abruptly without packet discipline, the room clicks or tears. If reasoning continues after interruption, the backend may synthesize a stale answer for a turn the user has already replaced. Recovery therefore needs explicit ownership of playback, TTS, and reasoning cancellation, plus a clear rule for what state survives the cut.</p>
+<pre><code>async def handle_barge_in(turn_id: str, frame_energy_db: float) -&gt; None:
+    if state.mode != "speak" or frame_energy_db &lt; BARGE_IN_DB:
+        return
+
+    trace.mark("barge_in.detected", turn_id=turn_id)
+    state.mode = "interrupt"
+
+    await playback.stop_after_current_packet()
+    await tts.abort(turn_id)
+    await llm.abort(turn_id)
+
+    trace.mark("barge_in.cleared")
+    stt.begin_recovery_window()
+    state.mode = "recover"</code></pre>
+          <p>The recovery window is a systems detail worth naming. After interruption, the pipeline should favor rapid reacquisition over deep cleanup. The user is usually correcting course. That means fast speech detection, compact transcription chunks, and strong trace linkage between the interrupted turn and the replacement turn. Without that linkage, optimization efforts cannot distinguish "slow normal reply" from "normal interruption handling." Those are different phenomena and should remain different in the logs.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section closing" id="trace">
+      <div class="section-head">
+        <div class="marker">
+          <span class="timestamp">post-turn</span>
+          <h2>// Tracing, Diagnosis, Optimization</h2>
+        </div>
+        <div class="lane">
+          <p>The README notes that room and pipeline events are logged for debugging. That is the correct closing point for the architecture because a latency-first voice stack is only as good as its trace discipline. The system should emit events that preserve causal order across the entire path: room join, audio frame ingress, speech start, speech end, utterance commit, transcript partial, transcript stable, reasoning start, first clause ready, synthesis start, first audio chunk, playback start, interruption detected, playback stop, recovery start. If those events share a turn identifier and a single origin clock, most performance disputes become answerable rather than rhetorical.</p>
+          <p>A useful trace is not only granular; it is budget-aware. Operators should be able to compare actual stage times against expected envelopes at a glance. The clean-turn example in this page gives one such envelope: 144 ms to commit, 322 ms to stable text, 569 ms to response clause, 866 ms to audible speech. If a run misses the envelope, the trace should make the miss local. "The agent was slow" is not a diagnosis. "Commit drifted by 90 ms because endpoint silence threshold was too conservative" is a diagnosis. So is "reasoning exceeded budget because reply length doubled after prompt expansion." So is "playback start slipped because outbound audio queue waited for a full sentence instead of a clause."</p>
+          <p>Optimization then becomes mechanical. Remove serialization before tuning models. Keep LiveKit close to the user path. Tighten endpoint policy until clipping appears, then back off slightly. Let faster-whisper expose stable partials without waiting for decorative formatting. Force Gemini Flash to produce clause-shaped answers under length pressure. Begin Piper on the first safe clause. Start playback on the smallest stable audio reserve that avoids stutter. Treat interruption as a separate latency budget with its own thresholds and tests. None of these steps are glamorous. All of them are cumulative.</p>
+          <p>The trace also protects against false victories. A faster average STT time may be meaningless if p95 interruption recovery worsens. A shorter reasoning stage may simply be hiding increased TTS work caused by over-verbose first clauses. The system therefore needs percentile views and turn-class segmentation: clean turns, interrupted turns, resumed turns, failed turns. Real-time quality emerges from the tail as much as the median because users remember the awkward pauses and overlaps far more vividly than the smooth median exchange.</p>
+<pre><code>room.joined                0.00 ms
+room.audio_frame         12.31 ms
+vad.speech_end          143.92 ms
+turn.commit             144.07 ms
+stt.stable_text         321.66 ms
+llm.first_clause        568.88 ms
+tts.first_chunk         729.73 ms
+playback.start          865.94 ms
+barge_in.detected      1494.20 ms
+barge_in.cleared       1617.11 ms</code></pre>
+          <p>That is the right final picture for this project: not a mascot, not a chatbot persona, not an abstract model stack, but a timed room instrument. LiveKit carries sound. faster-whisper extracts committed text. Gemini Flash plans the reply under a strict clause budget. Piper makes speech from that plan. The system succeeds only when those stages behave as one measured pipeline and when interruption can cut across the pipe without leaving stale audio behind. Conversational quality here is simply cumulative latency made small, visible, and correctable.</p>
+          <p class="footer-note">Self-contained page constraints observed in design: monochrome only, inline CSS only, no external images, no JavaScript, no Mermaid, and all diagrams rendered as inline SVG. The only optional external dependency retained is a single Google Fonts stylesheet link.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
