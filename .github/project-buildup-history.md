@@ -42,8 +42,8 @@
 - Deliverable: Good enough to not be embarrassing.
 ## 2025-06-17 - Day 8: Styling
 
-- Task summary: Ended up revisiting this in the evening — fixed a type coercion issue that was causing silent NaN propagation downstream.
-- Deliverable: Nothing dramatic — just keeping things tidy.
+- Task summary: Ended up revisiting this in the evening - fixed a type coercion issue that was causing silent NaN propagation downstream.
+- Deliverable: Nothing dramatic - just keeping things tidy.
 ## 2025-06-17 - Day 8: Styling
 
 - Task summary: Spent another hour on this: spent time just reading back through everything to make sure it still made sense end to end.
@@ -62,7 +62,7 @@
 - Deliverable: One of those satisfying small wins.
 ## 2025-06-19 - Day 10: Artifacts
 
-- Task summary: Ended up revisiting this in the evening — wrapped a repeated block in a helper function since it showed up three times.
+- Task summary: Ended up revisiting this in the evening - wrapped a repeated block in a helper function since it showed up three times.
 - Deliverable: One of those satisfying small wins.
 ## 2025-06-20 - Day 11: README check
 
